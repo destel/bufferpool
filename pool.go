@@ -22,7 +22,7 @@ const (
 // Distinct pools may be used for distinct types of byte buffers.
 // Properly determined byte buffer types with their own pools may help reducing
 // memory waste.
-type Pool struct {
+type Pool[T any] struct {
 	calls       [steps]uint64
 	calibrating uint64
 
@@ -32,39 +32,48 @@ type Pool struct {
 	pool sync.Pool
 }
 
-var defaultPool Pool
+type ByteBufferPool struct {
+	Pool[byte]
+}
+
+var defaultPool ByteBufferPool
 
 // Get returns an empty byte buffer from the pool.
 //
 // Got byte buffer may be returned to the pool via Put call.
 // This reduces the number of memory allocations required for byte buffer
 // management.
-func Get() *ByteBuffer { return defaultPool.Get() }
+func Get() ByteBuffer { return defaultPool.Get() }
 
 // Get returns new byte buffer with zero length.
 //
 // The byte buffer may be returned to the pool via Put after the use
 // in order to minimize GC overhead.
-func (p *Pool) Get() *ByteBuffer {
+func (p *Pool[T]) Get() *Buffer[T] {
 	v := p.pool.Get()
 	if v != nil {
-		return v.(*ByteBuffer)
+		return v.(*Buffer[T])
 	}
-	return &ByteBuffer{
-		B: make([]byte, 0, atomic.LoadUint64(&p.defaultSize)),
+	return &Buffer[T]{
+		B: make([]T, 0, atomic.LoadUint64(&p.defaultSize)),
 	}
+}
+
+func (p *ByteBufferPool) Get() ByteBuffer {
+	res := p.Pool.Get()
+	return ByteBuffer{res}
 }
 
 // Put returns byte buffer to the pool.
 //
-// ByteBuffer.B mustn't be touched after returning it to the pool.
+// Buffer.B mustn't be touched after returning it to the pool.
 // Otherwise data races will occur.
-func Put(b *ByteBuffer) { defaultPool.Put(b) }
+func Put(b ByteBuffer) { defaultPool.Put(b) }
 
 // Put releases byte buffer obtained via Get to the pool.
 //
 // The buffer mustn't be accessed after returning to the pool.
-func (p *Pool) Put(b *ByteBuffer) {
+func (p *Pool[T]) Put(b *Buffer[T]) {
 	idx := index(len(b.B))
 
 	if atomic.AddUint64(&p.calls[idx], 1) > calibrateCallsThreshold {
@@ -78,7 +87,11 @@ func (p *Pool) Put(b *ByteBuffer) {
 	}
 }
 
-func (p *Pool) calibrate() {
+func (p *ByteBufferPool) Put(b ByteBuffer) {
+	p.Pool.Put(b.Buffer)
+}
+
+func (p *Pool[T]) calibrate() {
 	if !atomic.CompareAndSwapUint64(&p.calibrating, 0, 1) {
 		return
 	}

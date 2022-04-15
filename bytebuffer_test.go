@@ -15,6 +15,7 @@ func TestByteBufferReadFrom(t *testing.T) {
 	expectedN := int64(len(expectedS))
 
 	var bb ByteBuffer
+	bb.Buffer = new(Buffer[byte])
 	bb.WriteString(prefix)
 
 	rf := (io.ReaderFrom)(&bb)
@@ -45,6 +46,7 @@ func TestByteBufferReadFrom(t *testing.T) {
 func TestByteBufferWriteTo(t *testing.T) {
 	expectedS := "foobarbaz"
 	var bb ByteBuffer
+	bb.Buffer = new(Buffer[byte])
 	bb.WriteString(expectedS[:3])
 	bb.WriteString(expectedS[3:])
 

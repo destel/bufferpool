@@ -3,11 +3,11 @@ package bytebufferpool_test
 import (
 	"fmt"
 
-	"github.com/valyala/bytebufferpool"
+	"github.com/destel/bufferpool"
 )
 
 func ExampleByteBuffer() {
-	bb := bytebufferpool.Get()
+	bb := bufferpool.Get()
 
 	bb.WriteString("first line\n")
 	bb.Write([]byte("second line\n"))
@@ -17,5 +17,5 @@ func ExampleByteBuffer() {
 
 	// It is safe to release byte buffer now, since it is
 	// no longer used.
-	bytebufferpool.Put(bb)
+	bufferpool.Put(bb)
 }
