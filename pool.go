@@ -43,7 +43,7 @@ var defaultPool ByteBufferPool
 // Got byte buffer may be returned to the pool via Put call.
 // This reduces the number of memory allocations required for byte buffer
 // management.
-func Get() ByteBuffer { return defaultPool.Get() }
+func Get() *ByteBuffer { return defaultPool.Get() }
 
 // Get returns new byte buffer with zero length.
 //
@@ -59,16 +59,15 @@ func (p *Pool[T]) Get() *Buffer[T] {
 	}
 }
 
-func (p *ByteBufferPool) Get() ByteBuffer {
-	res := p.Pool.Get()
-	return ByteBuffer{res}
+func (p *ByteBufferPool) Get() *ByteBuffer {
+	return (*ByteBuffer)(p.Pool.Get())
 }
 
 // Put returns byte buffer to the pool.
 //
 // Buffer.B mustn't be touched after returning it to the pool.
 // Otherwise data races will occur.
-func Put(b ByteBuffer) { defaultPool.Put(b) }
+func Put(b *ByteBuffer) { defaultPool.Put(b) }
 
 // Put releases byte buffer obtained via Get to the pool.
 //
@@ -87,8 +86,8 @@ func (p *Pool[T]) Put(b *Buffer[T]) {
 	}
 }
 
-func (p *ByteBufferPool) Put(b ByteBuffer) {
-	p.Pool.Put(b.Buffer)
+func (p *ByteBufferPool) Put(b *ByteBuffer) {
+	p.Pool.Put((*Buffer[byte])(b))
 }
 
 func (p *Pool[T]) calibrate() {

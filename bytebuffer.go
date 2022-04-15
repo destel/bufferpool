@@ -16,19 +16,21 @@ type Buffer[T any] struct {
 	B []T
 }
 
-type ByteBuffer struct {
-	*Buffer[byte]
-}
+type ByteBuffer Buffer[byte]
 
 // Len returns the size of the byte buffer.
 func (b *Buffer[T]) Len() int {
 	return len(b.B)
 }
 
+func (b *ByteBuffer) Len() int {
+	return (*Buffer[byte])(b).Len()
+}
+
 // ReadFrom implements io.ReaderFrom.
 //
 // The function appends all the data read from r to b.
-func (b ByteBuffer) ReadFrom(r io.Reader) (int64, error) {
+func (b *ByteBuffer) ReadFrom(r io.Reader) (int64, error) {
 	p := b.B
 	nStart := int64(len(p))
 	nMax := int64(cap(p))
@@ -60,7 +62,7 @@ func (b ByteBuffer) ReadFrom(r io.Reader) (int64, error) {
 }
 
 // WriteTo implements io.WriterTo.
-func (b ByteBuffer) WriteTo(w io.Writer) (int64, error) {
+func (b *ByteBuffer) WriteTo(w io.Writer) (int64, error) {
 	n, err := w.Write(b.B)
 	return int64(n), err
 }
@@ -68,7 +70,7 @@ func (b ByteBuffer) WriteTo(w io.Writer) (int64, error) {
 // Bytes returns b.B, i.e. all the bytes accumulated in the buffer.
 //
 // The purpose of this function is bytes.Buffer compatibility.
-func (b ByteBuffer) Bytes() []byte {
+func (b *ByteBuffer) Bytes() []byte {
 	return b.B
 }
 
@@ -78,18 +80,22 @@ func (b *Buffer[T]) Write(p []T) (int, error) {
 	return len(p), nil
 }
 
+func (b *ByteBuffer) Write(p []byte) (int, error) {
+	return (*Buffer[byte])(b).Write(p)
+}
+
 // WriteByte appends the byte c to the buffer.
 //
 // The purpose of this function is bytes.Buffer compatibility.
 //
 // The function always returns nil.
-func (b ByteBuffer) WriteByte(c byte) error {
+func (b *ByteBuffer) WriteByte(c byte) error {
 	b.B = append(b.B, c)
 	return nil
 }
 
 // WriteString appends s to Buffer.B.
-func (b ByteBuffer) WriteString(s string) (int, error) {
+func (b *ByteBuffer) WriteString(s string) (int, error) {
 	b.B = append(b.B, s...)
 	return len(s), nil
 }
@@ -99,17 +105,25 @@ func (b *Buffer[T]) Set(p []T) {
 	b.B = append(b.B[:0], p...)
 }
 
+func (b *ByteBuffer) Set(p []byte) {
+	(*Buffer[byte])(b).Set(p)
+}
+
 // SetString sets Buffer.B to s.
-func (b ByteBuffer) SetString(s string) {
+func (b *ByteBuffer) SetString(s string) {
 	b.B = append(b.B[:0], s...)
 }
 
 // String returns string representation of Buffer.B.
-func (b ByteBuffer) String() string {
+func (b *ByteBuffer) String() string {
 	return string(b.B)
 }
 
 // Reset makes Buffer.B empty.
 func (b *Buffer[T]) Reset() {
 	b.B = b.B[:0]
+}
+
+func (b *ByteBuffer) Reset() {
+	(*Buffer[byte])(b).Reset()
 }
